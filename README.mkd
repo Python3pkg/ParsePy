@@ -21,7 +21,7 @@ parse_rest
 Installation
 ------------
 
-    pip install parse_rest
+    pip install ParsePy
 
 Testing
 -------
