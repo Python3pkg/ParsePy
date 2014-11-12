@@ -13,7 +13,6 @@ parse_rest
   - Installation querying
   - push
   - Roles/ACLs**
-  - **PLANNED/TODO**: Image/File type support
 
 
 ** for applications with access to the MASTER KEY, see details below.
@@ -22,15 +21,7 @@ parse_rest
 Installation
 ------------
 
-The easiest way to install this package is by downloading or
-cloning this repository:
-
-    pip install git+https://github.com/dgrtwo/ParsePy.git
-
-Note: The version on [PyPI](http://pypi.python.org/pypi) is not
-up-to-date. The code is still under lots of changes and the stability
-of the library API - though improving - is not guaranteed. Please
-file any issues that you may find if documentation/application.
+    pip install parse_rest
 
 Testing
 -------

@@ -4,7 +4,7 @@ from unittest import TextTestRunner, TestLoader
 
 
 class TestCommand(Command):
-    '''Run test suite using `python setup.py test `'''
+    """Run test suite using `python setup.py test `"""
     user_options = []
 
     def initialize_options(self):
@@ -14,7 +14,7 @@ class TestCommand(Command):
         pass
 
     def run(self):
-        '''Run test suite in parse_rest.tests'''
+        """Run test suite in parse_rest.tests"""
         tests = TestLoader().loadTestsFromNames(['parse_rest.tests'])
         t = TextTestRunner(verbosity=1)
         t.run(tests)
@@ -22,17 +22,17 @@ class TestCommand(Command):
 
 setup(
     name='parse_rest',
-    version='0.2.20141004',
+    version='0.3.20141108',
     description='A client library for Parse.com\'.s REST API',
-    url='https://github.com/dgrtwo/ParsePy',
+    url='https://github.com/nana-music/ParsePy',
     packages=['parse_rest'],
     package_data={"parse_rest": [os.path.join("cloudcode", "*", "*")]},
     install_requires=['six'],
-    maintainer='David Robinson',
-    maintainer_email='dgrtwo@princeton.edu',
+    maintainer='kiri1120',
+    maintainer_email='kazuki.s1120@gmail.com',
     cmdclass={'test': TestCommand},
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
