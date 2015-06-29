@@ -26,6 +26,7 @@ ACCESS_KEYS = {}
 # Connection can sometimes hang forever on SSL handshake
 CONNECTION_TIMEOUT = 60
 
+
 def register(app_id, rest_key, **kw):
     global ACCESS_KEYS
     ACCESS_KEYS = {
@@ -33,6 +34,18 @@ def register(app_id, rest_key, **kw):
         'rest_key': rest_key
         }
     ACCESS_KEYS.update(**kw)
+
+
+class SessionToken:
+    def __init__(self, token):
+        global ACCESS_KEYS
+        self.token = token
+
+    def __enter__(self):
+        ACCESS_KEYS.update({'session_token': self.token})
+
+    def __exit__(self, type, value, traceback):
+        ACCESS_KEYS['session_token']
 
 
 def master_key_required(func):
@@ -45,12 +58,16 @@ def master_key_required(func):
         func(obj, *args, **kw)
     return ret
 
+# Using this as "default=" argument solve the problem with Datetime object not being JSON serializable
+def date_handler(obj):
+    return obj.isoformat() if hasattr(obj, 'isoformat') else obj
+
 
 class ParseBase(object):
     ENDPOINT_ROOT = API_ROOT
 
     @classmethod
-    def execute(cls, uri, http_verb, extra_headers=None, batch=False, body=None, **kw):
+    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _body=None, **kw):
         """
         if batch == False, execute a command with the given parameters and
         return the response JSON.
@@ -71,10 +88,10 @@ class ParseBase(object):
         master_key = ACCESS_KEYS.get('master_key')
 
         url = uri if uri.startswith(API_ROOT) else cls.ENDPOINT_ROOT + uri
-        if body is None:
-            data = kw and json.dumps(kw) or "{}"
+        if _body is None:
+            data = kw and json.dumps(kw, default=date_handler) or "{}"
         else:
-            data = body
+            data = _body
         if http_verb == 'GET' and data:
             url += '?%s' % urlencode(kw)
             data = None
@@ -89,8 +106,10 @@ class ParseBase(object):
         headers.update(extra_headers or {})
 
         request = Request(url, data, headers)
-
-        if master_key and 'X-Parse-Session-Token' not in headers.keys():
+        
+        if ACCESS_KEYS.get('session_token'):
+            request.add_header('X-Parse-Session-Token', ACCESS_KEYS.get('session_token'))
+        elif master_key:
             request.add_header('X-Parse-Master-Key', master_key)
 
         request.get_method = lambda: http_verb
@@ -124,6 +143,11 @@ class ParseBase(object):
     def DELETE(cls, uri, **kw):
         return cls.execute(uri, 'DELETE', **kw)
 
+    @classmethod
+    def drop(cls):
+        return cls.POST("%s/schemas/%s" % (API_ROOT, cls.__name__),
+                        _method="DELETE", _ClientVersion="browser")
+
 
 class ParseBatcher(ParseBase):
     """Batch together create, update or delete operations"""
@@ -144,7 +168,10 @@ class ParseBatcher(ParseBase):
         # perform the callbacks with the response data (updating the existing
         # objets, etc)
         for callback, response in zip(callbacks, responses):
-            callback(response["success"])
+            if "success" in response:
+                callback(response["success"])
+            else:
+                raise core.ParseError(response["error"])
 
     def batch_save(self, objects):
         """save a list of objects in one operation"""

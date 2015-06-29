@@ -67,9 +67,15 @@ class ParseType(object):
             ParseResource: Pointer
         }
 
-        if hasattr(python_object, '__iter__') and not isinstance(python_object, (basestring, ParseType)):
+        if (hasattr(python_object, '__iter__') and
+            not isinstance(python_object, (six.string_types[0], ParseType))):
             # It's an iterable? Repeat this whole process on each object
-            return [ParseType.convert_to_parse(o, as_pointer=as_pointer)
+            if isinstance(python_object, dict):
+                for key, value in python_object.iteritems():
+                    python_object[key]=ParseType.convert_to_parse(value, as_pointer=as_pointer)
+                return python_object
+            else:
+                return [ParseType.convert_to_parse(o, as_pointer=as_pointer)
                     for o in python_object]
 
         if python_type in transformation_map:
@@ -219,7 +225,7 @@ class File(ParseType, ParseBase):
             raise ParseError("Files can't be overwritten")
         uri = '/'.join([self.__class__.ENDPOINT_ROOT, self.name])
         headers = {'Content-type': self.mimetype}
-        response = self.__class__.POST(uri, extra_headers=headers, batch=batch, body=self._content)
+        response = self.__class__.POST(uri, extra_headers=headers, batch=batch, _body=self._content)
         self._file_url = response['url']
         self._name = response['name']
         self._api_url = '/'.join([API_ROOT, 'files', self._name])
@@ -247,8 +253,8 @@ class ACL(ParseType):
     def from_native(cls, **kw):
         return cls(kw)
 
-    def __init__(self, acl):
-        self._acl = acl
+    def __init__(self, acl=None):
+        self._acl = acl or {}
 
     def _to_native(self):
         return self._acl
@@ -261,9 +267,9 @@ class ACL(ParseType):
 
     def set_role(self, role, read=False, write=False):
         if isinstance(role, ParseResource):
-            self._set_permissions("role:%s" % role.name, read, write)
+            self._set_permission("role:%s" % role.name, read, write)
         else:
-            self._set_permissions("role:%s" % role, read, write)
+            self._set_permission("role:%s" % role, read, write)
 
     def set_user(self, user, read=False, write=False):
         if isinstance(user, ParseResource):
@@ -449,6 +455,19 @@ class Object(six.with_metaclass(ObjectMetaclass, ParseResource)):
             }
         self.__class__.PUT(self._absolute_url, **payload)
         self.__dict__[key] += amount
+        
+    def remove(self, key):
+        """
+        Clear a column value in the object. Note that this happens immediately:
+        it does not wait for save() to be called.
+        """
+        payload = {
+            key: {
+                '__op': 'Delete'
+                }
+            }
+        self.__class__.PUT(self._absolute_url, **payload)
+        del self.__dict__[key]
 
     def removeRelation(self, key, className, objectsId):
         self.manageRelation('RemoveRelation', key, className, objectsId)

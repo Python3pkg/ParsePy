@@ -91,6 +91,11 @@ class User(ParseResource):
         login_url = User.ENDPOINT_ROOT
         return cls(**User.POST(login_url, authData=auth))
 
+    @classmethod
+    def current_user(cls):
+        user_url = '/'.join([API_ROOT, 'users/me'])
+        return cls(**User.GET(user_url))
+
     @staticmethod
     def request_password_reset(email):
         '''Trigger Parse\'s Password Process. Return True/False
@@ -113,6 +118,28 @@ class User(ParseResource):
 
     def __repr__(self):
         return '<User:%s (Id %s)>' % (getattr(self, 'username', None), self.objectId)
+    
+    def removeRelation(self, key, className, objectsId):
+        self.manageRelation('RemoveRelation', key, className, objectsId)
+
+    def addRelation(self, key, className, objectsId):
+        self.manageRelation('AddRelation', key, className, objectsId)
+
+    def manageRelation(self, action, key, className, objectsId):
+        objects = [{
+                    "__type": "Pointer",
+                    "className": className,
+                    "objectId": objectId
+                    } for objectId in objectsId]
+
+        payload = {
+            key: {
+                 "__op": action,
+                 "objects": objects
+                }
+            }
+        self.__class__.PUT(self._absolute_url, **payload)
+        self.__dict__[key] = ''
 
 
 User.Query = QueryManager(User)

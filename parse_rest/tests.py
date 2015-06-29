@@ -83,15 +83,19 @@ class TestObject(unittest.TestCase):
     def setUp(self):
         self.score = GameScore(score=1337, player_name='John Doe', cheat_mode=False)
         self.sao_paulo = City(name='São Paulo', location=GeoPoint(-23.5, -46.6167))
+        self.collected_item = CollectedItem(type="Sword", isAwesome=True)
 
     def tearDown(self):
         city_name = getattr(self.sao_paulo, 'name', None)
         game_score = getattr(self.score, 'score', None)
+        collected_item_type = getattr(self.collected_item, 'type', None)
         if city_name:
             ParseBatcher().batch_delete(City.Query.filter(name=city_name))
         if game_score:
             ParseBatcher().batch_delete(GameScore.Query.filter(score=game_score))
-
+        if collected_item_type:
+            ParseBatcher().batch_delete(CollectedItem.Query.filter(type=collected_item_type))
+        
     def testCanInitialize(self):
         self.assertEqual(self.score.score, 1337, 'Could not set score')
 
@@ -139,13 +143,18 @@ class TestObject(unittest.TestCase):
         self.score.increment('score')
         self.assertTrue(GameScore.Query.filter(score=previous_score + 1).exists(),
                      'Failed to increment score on backend')
+                     
+    def testCanRemoveField(self):
+        self.score.save()
+        self.score.remove('score')
+        self.assertTrue(GameScore.Query.filter(score=None).exists(),
+                     'Failed to remove score on backend')
 
     def testAssociatedObject(self):
         """test saving and associating a different object"""
-        collectedItem = CollectedItem(type="Sword", isAwesome=True)
-        collectedItem.save()
 
-        self.score.item = collectedItem
+        self.collected_item.save()
+        self.score.item = self.collected_item
         self.score.save()
 
         # get the object, see if it has saved
@@ -390,6 +399,10 @@ class TestFunction(unittest.TestCase):
 
         cloud_function_dir = os.path.join(os.path.split(__file__)[0], 'cloudcode')
         os.chdir(cloud_function_dir)
+        if not os.path.exists("config"):
+            os.makedirs("config")
+        if not os.path.exists("public"):
+            os.makedirs("public")
         # write the config file
         with open("config/global.json", "w") as outf:
             outf.write(GLOBAL_JSON_TEXT % (settings_local.APPLICATION_ID,
@@ -506,6 +519,28 @@ class TestUser(unittest.TestCase):
         g = self.game = Game(title='G1', creator=user)
         g.save()
         self.assertEqual(1, len(Game.Query.filter(creator=user)))
+
+    def testCanGetCurrentUser(self):
+        user = User.signup(self.username, self.password)
+        self.assertIsNotNone(user.sessionToken)
+
+        register(
+            getattr(settings_local, 'APPLICATION_ID'),
+            getattr(settings_local, 'REST_API_KEY'),
+            session_token=user.sessionToken
+        )
+
+        current_user = User.current_user()
+
+        register(
+            getattr(settings_local, 'APPLICATION_ID'),
+            getattr(settings_local, 'REST_API_KEY'),
+            master_key=getattr(settings_local, 'MASTER_KEY')
+        )
+        
+        self.assertIsNotNone(current_user)
+        self.assertEqual(current_user.sessionToken, user.sessionToken)
+        self.assertEqual(current_user.username, user.username)
 
 
 class TestPush(unittest.TestCase):
