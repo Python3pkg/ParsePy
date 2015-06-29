@@ -22,7 +22,7 @@ class TestCommand(Command):
 
 setup(
     name='ParsePy',
-    version='0.3.20141108',
+    version='0.3.20150629',
     description='A client library for Parse.com\'.s REST API',
     url='https://github.com/nana-music/ParsePy',
     packages=['parse_rest'],
