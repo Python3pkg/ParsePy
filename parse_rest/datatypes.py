@@ -10,7 +10,7 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from __future__ import unicode_literals
+
 
 import base64
 import datetime
@@ -56,7 +56,7 @@ class ParseType(object):
 
         if is_object and not as_pointer:
             return dict([(k, ParseType.convert_to_parse(v, as_pointer=True))
-                         for k, v in python_object._editable_attrs.items()
+                         for k, v in list(python_object._editable_attrs.items())
                          ])
 
         python_type = ParseResource if is_object else type(python_object)
@@ -71,7 +71,7 @@ class ParseType(object):
             not isinstance(python_object, (six.string_types[0], ParseType))):
             # It's an iterable? Repeat this whole process on each object
             if isinstance(python_object, dict):
-                for key, value in python_object.iteritems():
+                for key, value in python_object.items():
                     python_object[key]=ParseType.convert_to_parse(value, as_pointer=as_pointer)
                 return python_object
             else:
@@ -279,7 +279,7 @@ class ACL(ParseType):
 
     def set_all(self, permissions):
         self._acl.clear()
-        for k, v in permissions.items():
+        for k, v in list(permissions.items()):
             self._set_permission(k, **v)
 
     def _set_permission(self, name, read=False, write=False):
@@ -312,7 +312,7 @@ class ParseResource(ParseBase):
     def _editable_attrs(self):
         protected_attrs = self.__class__.PROTECTED_ATTRIBUTES
         allowed = lambda a: a not in protected_attrs and not a.startswith('_')
-        return dict([(k, v) for k, v in self.__dict__.items() if allowed(k)])
+        return dict([(k, v) for k, v in list(self.__dict__.items()) if allowed(k)])
 
     def __init__(self, **kw):
         self.objectId = None

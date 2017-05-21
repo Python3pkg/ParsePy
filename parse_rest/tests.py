@@ -4,7 +4,7 @@
 """
 Contains unit tests for the Python Parse REST API wrapper
 """
-from __future__ import print_function
+
 
 import os
 import sys
@@ -424,7 +424,7 @@ class TestFunction(unittest.TestCase):
 
         hello_world_func = Function("hello")
         ret = hello_world_func()
-        self.assertEqual(ret["result"], u"Hello world!")
+        self.assertEqual(ret["result"], "Hello world!")
 
         # Test the averageStars function- takes simple argument
         r1 = Review(movie="The Matrix", stars=5,
